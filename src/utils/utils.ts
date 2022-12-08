@@ -30,4 +30,17 @@ export class Utils {
 				completeCallback(values);
 			});
 	};
+
+	static interval(a: number, b: number, arr: number[] = null) : number[] {
+		if (a > b) {
+			throw "WTF!";
+		}
+
+		if (a == b) {
+			return arr;
+		}
+
+		arr = arr || [];
+		return Utils.interval(a + 1, b, [...arr, a]);
+	};
 }
