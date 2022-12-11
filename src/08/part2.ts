@@ -13,6 +13,7 @@ interface Coord {
 interface Tree extends Coord {
 	height: number;
 	visible: boolean;
+	scenicScore: number;
 }
 
 Utils.lineReader<number>(
@@ -21,7 +22,13 @@ Utils.lineReader<number>(
 	match => {
 		const row = match[1];
 		for (let x = 0; x < row.length; x++) {
-			const tree: Tree = { x, y, height: parseInt(row[x]), visible: false };
+			const tree: Tree = {
+				x,
+				y,
+				height: parseInt(row[x]),
+				visible: false,
+				scenicScore: 0,
+			};
 			map.set(x, y, tree);
 		}
 		y++;
@@ -29,76 +36,77 @@ Utils.lineReader<number>(
 		return null;
 	},
 	result => {
-		let visibleTrees = getVisibleTrees();
-		answer = visibleTrees.length;
+		const treeWithHighestScenicScore = getTreeWithHighestScenicScore();
+		answer = treeWithHighestScenicScore.scenicScore;
 
-		map.print(t => (t.visible ? `[${t.height}]` : ` ${t.height} `));
-		console.log(`Visible trees: ${answer}`);
+		map.print(t =>
+			t == treeWithHighestScenicScore ? `[${t.height}]` : ` ${t.height} `
+		);
+		console.log(`Highest scenic score: ${answer}`);
 	}
 );
 
-function getVisibleTrees(): Tree[] {
-	for (let i = 0; i < map.rows; i++) {
-		const row = map.getRowAt(i);
-		let maxHeight = Math.max(...row.map(t => t.height));
+function getTreeWithHighestScenicScore(): Tree {
+	let treeWithHighestScenicScore: Tree = null;
 
-		let height = -1;
-		for (let i = 0; i < row.length; i++) {
-			if (row[i].height == maxHeight) {
-				row[i].visible = true;
-				break;
-			}
-
-			if (row[i].height > height) {
-				height = row[i].height;
-				row[i].visible = true;
-			}
-		}
-
-		height = -1;
-		for (let i = row.length - 1; i > 0; i--) {
-			if (row[i].height == maxHeight) {
-				row[i].visible = true;
-				break;
-			}
-
-			if (row[i].height > height) {
-				height = row[i].height;
-				row[i].visible = true;
+	for (let r = 0; r < map.rows; r++) {
+		const row = map.getRowAt(r);
+		for (let c = 0; c < map.columns; c++) {
+			const tree = map.getItemAt(c, r);
+			calculateScenicScore(tree, row, map.getColumnAt(c));
+			if (
+				treeWithHighestScenicScore == null ||
+				tree.scenicScore > treeWithHighestScenicScore.scenicScore
+			) {
+				treeWithHighestScenicScore = tree;
 			}
 		}
 	}
 
-	for (let i = 0; i < map.columns; i++) {
-		const column = map.getColumnAt(i);
-		let maxHeight = Math.max(...column.map(t => t.height));
+	return treeWithHighestScenicScore;
+}
 
-		let height = -1;
-		for (let i = 0; i < column.length; i++) {
-			if (column[i].height == maxHeight) {
-				column[i].visible = true;
-				break;
-			}
+function calculateScenicScore(t: Tree, row: Tree[], column: Tree[]): void {
+	let viewingDistanceLeft = 0;
+	let viewingDistanceRight = 0;
+	let viewingDistanceUp = 0;
+	let viewingDistanceDown = 0;
 
-			if (column[i].height > height) {
-				height = column[i].height;
-				column[i].visible = true;
-			}
-		}
-
-		height = -1;
-		for (let i = column.length - 1; i > 0; i--) {
-			if (column[i].height == maxHeight) {
-				column[i].visible = true;
-				break;
-			}
-
-			if (column[i].height > height) {
-				height = column[i].height;
-				column[i].visible = true;
-			}
+	// Left
+	for (let i = t.x - 1; i > 0; i--) {
+		viewingDistanceLeft++;
+		if (row[i].height >= t.height) {
+			break;
 		}
 	}
 
-	return map.filter(t => t.visible);
+	// Right
+	for (let i = t.x + 1; i < row.length; i++) {
+		viewingDistanceRight++;
+		if (row[i].height >= t.height) {
+			break;
+		}
+	}
+
+	// Up
+	for (let i = t.y - 1; i > 0; i--) {
+		viewingDistanceUp++;
+		if (column[i].height >= t.height) {
+			break;
+		}
+	}
+
+	// Down
+	for (let i = t.y + 1; i < column.length; i++) {
+		viewingDistanceDown++;
+		if (column[i].height >= t.height) {
+			break;
+		}
+	}
+
+	t.scenicScore =
+		viewingDistanceLeft *
+		viewingDistanceRight *
+		viewingDistanceUp *
+		viewingDistanceDown;
 }

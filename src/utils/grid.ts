@@ -29,25 +29,25 @@ export default class Grid<T> {
 		return this.map[index];
 	}
 
-	getItemAt(x: number, y: number): T {
-		if (y >= this.map.length) {
+	getItemAt(column: number, row: number): T {
+		if (row >= this.map.length) {
 			return null;
 		}
 
-		if (x >= this.map[0].length) {
+		if (column >= this.map[0].length) {
 			return null;
 		}
 
-		return this.map[y][x];
+		return this.map[row][column];
 	}
 
-	set(x: number, y: number, value: T) {
-		while (y >= this.map.length) {
+	set(column: number, row: number, value: T) {
+		while (row >= this.map.length) {
 			this.map.push([]);
 		}
 
-		this.map[y][x] = value;
-		this.columns = this.map[y].length;
+		this.map[row][column] = value;
+		this.columns = this.map[row].length;
 		this.rows = this.map.length;
 	}
 
