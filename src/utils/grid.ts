@@ -65,8 +65,8 @@ export default class Grid<T> {
 
 	filter(func: (arg: T) => boolean): T[] {
 		const result: T[] = [];
-		for (let y = 0; y < this.map.length; y++) {
-			for (let x = 0; x < this.map[y].length; x++) {
+		for (let y = 0; y < this.rows; y++) {
+			for (let x = 0; x < this.columns; x++) {
 				if (func(this.map[y][x])) {
 					result.push(this.map[y][x]);
 				}
@@ -74,6 +74,19 @@ export default class Grid<T> {
 		}
 
 		return result;
+	}
+
+	getAdjacentItems(column: number, row: number): T[] {
+		return [
+			this.getItemAt(column - 1, row - 1),
+			this.getItemAt(column, row - 1),
+			this.getItemAt(column + 1, row - 1),
+			this.getItemAt(column - 1, row),
+			this.getItemAt(column + 1, row),
+			this.getItemAt(column - 1, row + 1),
+			this.getItemAt(column, row + 1),
+			this.getItemAt(column + 1, row + 1),
+		].filter(item => item != null);
 	}
 
 	print(func: (arg: T) => string) {
