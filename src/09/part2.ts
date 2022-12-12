@@ -1,112 +1,131 @@
 import Grid from "../utils/grid";
 import { Utils } from "../utils/utils";
 
+interface Position {
+	row: number;
+	column: number;
+	visited: boolean;
+}
+
+type Direction = "R" | "U" | "L" | "D";
+
 let answer = 0;
-let map = new Grid<Tree>();
-let y = 0;
+const map = new Grid<Position>();
+const mapSize = 600;
 
-interface Coord {
-	x: number;
-	y: number;
-}
+initMap();
 
-interface Tree extends Coord {
-	height: number;
-	visible: boolean;
-	scenicScore: number;
-}
+let headPosition: Position = map.getItemAt(mapSize / 2, mapSize / 2);
+let knots: Position[] = [
+	headPosition,
+	headPosition,
+	headPosition,
+	headPosition,
+	headPosition,
+	headPosition,
+	headPosition,
+	headPosition,
+	headPosition,
+];
 
-Utils.lineReader<number>(
-	"src/08/input.txt",
-	/^(\d+)$/,
+const startPosition: Position = headPosition;
+
+Utils.lineReader<string>(
+	"src/09/input.txt",
+	/^([RULD]) (\d+)$/,
 	match => {
-		const row = match[1];
-		for (let x = 0; x < row.length; x++) {
-			const tree: Tree = {
-				x,
-				y,
-				height: parseInt(row[x]),
-				visible: false,
-				scenicScore: 0,
-			};
-			map.set(x, y, tree);
-		}
-		y++;
+		const direction = match[1] as Direction;
+		const steps = parseInt(match[2]);
 
-		return null;
+		for (let i = 0; i < steps; i++) {
+			walk(direction);
+		}
+		return `Walked ${steps} steps ${direction}`;
 	},
 	result => {
-		const treeWithHighestScenicScore = getTreeWithHighestScenicScore();
-		answer = treeWithHighestScenicScore.scenicScore;
-
-		map.print(t =>
-			t == treeWithHighestScenicScore ? `[${t.height}]` : ` ${t.height} `
+		map.print(position =>
+			position == headPosition
+				? "H"
+				: knots.find(k => k == position)
+				? (knots.indexOf(position) + 1).toString()
+				: position == startPosition
+				? "S"
+				: position.visited
+				? "#"
+				: "."
 		);
-		console.log(`Highest scenic score: ${answer}`);
+
+		answer = map.filter(p => p.visited).length;
+		console.log(`Answer: ${answer}`);
 	}
 );
 
-function getTreeWithHighestScenicScore(): Tree {
-	let treeWithHighestScenicScore: Tree = null;
-
-	for (let r = 0; r < map.rows; r++) {
-		const row = map.getRowAt(r);
-		for (let c = 0; c < map.columns; c++) {
-			const tree = map.getItemAt(c, r);
-			calculateScenicScore(tree, row, map.getColumnAt(c));
-			if (
-				treeWithHighestScenicScore == null ||
-				tree.scenicScore > treeWithHighestScenicScore.scenicScore
-			) {
-				treeWithHighestScenicScore = tree;
-			}
+function initMap() {
+	for (let row = 0; row < mapSize; row++) {
+		for (let column = 0; column < mapSize; column++) {
+			map.set(column, row, { row, column, visited: false });
 		}
 	}
-
-	return treeWithHighestScenicScore;
 }
 
-function calculateScenicScore(t: Tree, row: Tree[], column: Tree[]): void {
-	let viewingDistanceLeft = 0;
-	let viewingDistanceRight = 0;
-	let viewingDistanceUp = 0;
-	let viewingDistanceDown = 0;
-
-	// Left
-	for (let i = t.x - 1; i > 0; i--) {
-		viewingDistanceLeft++;
-		if (row[i].height >= t.height) {
+function walk(direction: Direction) {
+	switch (direction) {
+		case "D":
+			headPosition = map.getItemAt(headPosition.column, headPosition.row + 1);
 			break;
-		}
+		case "U":
+			headPosition = map.getItemAt(headPosition.column, headPosition.row - 1);
+			break;
+		case "L":
+			headPosition = map.getItemAt(headPosition.column - 1, headPosition.row);
+			break;
+		case "R":
+			headPosition = map.getItemAt(headPosition.column + 1, headPosition.row);
+			break;
 	}
 
-	// Right
-	for (let i = t.x + 1; i < row.length; i++) {
-		viewingDistanceRight++;
-		if (row[i].height >= t.height) {
-			break;
+	calculateTailPosition();
+}
+
+function calculateTailPosition() {
+	for (let index = 0; index < knots.length; index++) {
+		const knot = knots[index];
+		const knotToFollow = index == 0 ? headPosition : knots[index - 1];
+		if (index == knots.length - 1) {
+			knot.visited = true;
+		}
+
+		const adjacentItems = map.getAdjacentItems(knot.column, knot.row);
+		if (adjacentItems.find(p => p == knotToFollow) || knotToFollow == knot) {
+			// We don´t need to move
+			return;
+		}
+
+		const dCol = knotToFollow.column - knot.column;
+		const dRow = knotToFollow.row - knot.row;
+		if (dCol != 0 && dRow != 0) {
+			// Handle diagonal
+			if (dCol > 0 && dRow > 0) {
+				knots[index] = map.getItemAt(knot.column + 1, knot.row + 1);
+			} else if (dCol < 0 && dRow > 0) {
+				knots[index] = map.getItemAt(knot.column - 1, knot.row + 1);
+			} else if (dCol < 0 && dRow < 0) {
+				knots[index] = map.getItemAt(knot.column - 1, knot.row - 1);
+			} else if (dCol > 0 && dRow < 0) {
+				knots[index] = map.getItemAt(knot.column + 1, knot.row - 1);
+			}
+		} else if (dCol > 0) {
+			// Going right
+			knots[index] = map.getItemAt(knot.column + 1, knot.row);
+		} else if (dCol < 0) {
+			// Going left
+			knots[index] = map.getItemAt(knot.column - 1, knot.row);
+		} else if (dRow > 0) {
+			// Going down
+			knots[index] = map.getItemAt(knot.column, knot.row + 1);
+		} else if (dRow < 0) {
+			// Going up
+			knots[index] = map.getItemAt(knot.column, knot.row - 1);
 		}
 	}
-
-	// Up
-	for (let i = t.y - 1; i > 0; i--) {
-		viewingDistanceUp++;
-		if (column[i].height >= t.height) {
-			break;
-		}
-	}
-
-	// Down
-	for (let i = t.y + 1; i < column.length; i++) {
-		viewingDistanceDown++;
-		if (column[i].height >= t.height) {
-			break;
-		}
-	}
-
-	t.scenicScore =
-		viewingDistanceLeft *
-		viewingDistanceRight *
-		viewingDistanceUp *
-		viewingDistanceDown;
 }
