@@ -1,4 +1,4 @@
-import Grid from "../utils/grid";
+import { Grid } from "../utils/grid";
 import { Utils } from "../utils/utils";
 
 interface Position {

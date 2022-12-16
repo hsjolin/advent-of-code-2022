@@ -1,4 +1,9 @@
-export default class Grid<T> {
+export interface GridNode {
+	row: number;
+	column: number;
+}
+
+export class Grid <T extends GridNode>{ 
 	private map: T[][] = [];
 
 	rows: number = 0;
@@ -30,11 +35,11 @@ export default class Grid<T> {
 	}
 
 	getItemAt(column: number, row: number): T {
-		if (row >= this.map.length) {
+		if (row >= this.map.length || row < 0) {
 			return null;
 		}
 
-		if (column >= this.map[0].length) {
+		if (column >= this.map[0].length || column < 0) {
 			return null;
 		}
 

@@ -1,8 +1,21 @@
-const djikstras = {
-    estimatedNodes: [],
-    findShortestPath: function (options) {
-        const startNode = options.startNode;
-        const destinationNode = options.destinationNode;
+import { GridNode, Grid } from "./grid";
+
+export interface DjikstrasNode extends GridNode {
+    sourceNode: DjikstrasNode;
+    explored: boolean;
+    totalDistance: number;
+    distance: number;
+}
+
+export class Djikstras {
+    estimatedNodes: DjikstrasNode[] = [];
+    grid: Grid<DjikstrasNode>;
+
+    constructor(grid: Grid<DjikstrasNode>) {
+        this.grid = grid;
+    }
+
+    findShortestPath = (startNode: DjikstrasNode, destinationNode: DjikstrasNode): DjikstrasNode[] => {
         startNode.explored = true;
         startNode.totalDistance = 0;
         startNode.distance = 0;
@@ -10,7 +23,9 @@ const djikstras = {
         let currentNode = startNode;
 
         while (currentNode != destinationNode) {
-            currentNode.adjacentNodes.forEach(adjecent => {
+            const adjacentNodes = this.grid.getAdjacentItems(currentNode.column, currentNode.row);
+
+            adjacentNodes.forEach(adjecent => {
                 this.estimateNode(currentNode, adjecent);
             });
 
@@ -19,15 +34,16 @@ const djikstras = {
             currentNode = next;
         }
 
-        let result = [];
+        let result: DjikstrasNode[] = [];
         while (currentNode != null) {
             result.push(currentNode);
             currentNode = currentNode.sourceNode;
         }
 
-        return this.draw(result);
-    },
-    estimateNode: function (sourceNode, node) {
+        return result;
+    }
+
+    estimateNode = (sourceNode: DjikstrasNode, node: DjikstrasNode) => {
         if (sourceNode == null) {
             node.totalDistance = 0;
         } else if (node.totalDistance > sourceNode.totalDistance + node.distance) {
@@ -39,16 +55,16 @@ const djikstras = {
             this.estimatedNodes.push(node);
             this.estimatedNodes.sort((a, b) => b.totalDistance - a.totalDistance);
         }
-    },
-    exploreNode: function (node) {
+    }
+
+    exploreNode = (node: DjikstrasNode) => {
         node.explored = true;
-    },
-    draw(result) {
+    }
+
+    draw = (result: DjikstrasNode[]): string => {
         return result
             .reverse()
-            .map(node => '(' + node.x + ', ' + node.y + ') Distance: ' + node.distance + ' Total distance: ' + node.totalDistance + '\r\n')
+            .map(node => '(' + node.column + ', ' + node.row + ') Distance: ' + node.distance + ' Total distance: ' + node.totalDistance + '\r\n')
             .join('');
     }
-};
-
-module.exports = djikstras;
+}

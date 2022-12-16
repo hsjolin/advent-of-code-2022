@@ -1,4 +1,4 @@
-import Grid from "../utils/grid";
+import { Grid, GridNode } from "../utils/grid";
 import { Utils } from "../utils/utils";
 
 let answer = 0;
@@ -10,7 +10,7 @@ interface Coord {
 	y: number;
 }
 
-interface Tree extends Coord {
+interface Tree extends Coord, GridNode {
 	height: number;
 	visible: boolean;
 }
@@ -21,7 +21,7 @@ Utils.lineReader<number>(
 	match => {
 		const row = match[1];
 		for (let x = 0; x < row.length; x++) {
-			const tree: Tree = { x, y, height: parseInt(row[x]), visible: false };
+			const tree: Tree = { x, y, height: parseInt(row[x]), visible: false, column: x, row: y};
 			map.set(x, y, tree);
 		}
 		y++;
