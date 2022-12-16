@@ -1,72 +1,69 @@
-import { Djikstras, DjikstrasNode } from "../utils/djikstras";
+import { Dijkstras, DijkstrasNode } from "../utils/dijkstras";
 import { Grid } from "../utils/grid";
 import { Utils } from "../utils/utils";
 
+let answer = 0;
 let row = 0;
-const alphabet = "abcdefghijklmnopqrstuvxyz";
-const grid = new Grid<DjikstrasNode>();
-const djikstras = new Djikstras(grid);
-let startNode: DjikstrasNode = null;
-let endNode: DjikstrasNode = null;
+const alphabet = "abcdefghijklmnopqrstuvwxyz";
+const grid = new Grid<Node>();
+const dijkstras = new Dijkstras(grid);
+let startNode: Node = null;
+let endNode: Node = null;
+
+interface Node extends DijkstrasNode {
+	height: number;
+}
 
 Utils.lineReader<string>(
 	"src/12/input.txt",
 	/^([SEa-z]+)$/,
 	match => {
 		const str = match[1];
-		for (let i = 0; i < str.length; i++) {
-			const chr = str[i];
-			const height = alphabet.indexOf(chr);
+		for (let col = 0; col < str.length; col++) {
+			const chr = str[col];
+			const height =
+				chr == "S" ? 0 : chr == "E" ? alphabet.indexOf("z") : alphabet.indexOf(chr);
 
-			if (height >= 0) {
-				grid.set(i, row, {
-					column: i,
-					row: row,
-					distance: height,
-					explored: false,
-					sourceNode: null,
-					totalDistance: 99999999,
-				});
-			} else if (chr == "S") {
-				startNode = {
-					column: i,
-					row: row,
-					distance: 0,
-					explored: false,
-					sourceNode: null,
-					totalDistance: 99999999,
-				};
+			const node = {
+				column: col,
+				row: row,
+				height: height,
+				distance: 1,
+				explored: false,
+				sourceNode: null,
+				totalDistance: Number.MAX_SAFE_INTEGER,
+			};
 
-				grid.set(i, row, startNode);
-			} else {
-				endNode = {
-					column: i,
-					row: row,
-					distance: alphabet.indexOf("z"),
-					explored: false,
-					sourceNode: null,
-					totalDistance: 99999999,
-				};
-
-				grid.set(i, row, endNode);
+			if (chr == "S") {
+				startNode = node;
 			}
+
+			if (chr == "E") {
+				endNode = node;
+			}
+
+			grid.set(col, row, node);
 		}
 		row++;
 
 		return null;
 	},
 	_ => {
-		const result = djikstras.findShortestPath(
-			grid.find(n => n == startNode),
-			grid.find(n => n == endNode)
+		const result = dijkstras.findShortestPath(
+			startNode,
+			endNode,
+			(n, currentNode) =>
+				(n.column == currentNode.column || n.row == currentNode.row) &&
+				n.height - currentNode.height <= 1 
 		);
 
 		grid.print(n => {
-			const number = n.distance > 9 ? `${n.distance}` : `${n.distance} `;
+			const number = n.height > 9 ? `${n.height}` : `${n.height} `;
 			return result.includes(n) ? `[${number}]` : ` ${number} `;
-    });
-    
+		});
+
 		// console.log(result);
-		// console.log(`Answer: ${answer}`);
+		answer = result.length - 1;
+		console.log(`Answer: ${answer}`);
 	}
 );
