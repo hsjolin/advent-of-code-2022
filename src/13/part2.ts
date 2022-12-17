@@ -1,77 +1,79 @@
-import { Dijkstras, DijkstrasNode } from "../utils/dijkstras";
-import { Grid } from "../utils/grid";
+import StringReader from "../utils/stringReader";
 import { Utils } from "../utils/utils";
 
 let answer = 0;
-let row = 0;
-const alphabet = "abcdefghijklmnopqrstuvwxyz";
-const grid = new Grid<Node>();
-const dijkstras = new Dijkstras(grid);
-let endNode: Node = null;
-
-interface Node extends DijkstrasNode {
-	height: number;
-}
 
 Utils.lineReader<string>(
-	"src/12/input.txt",
-	/^([SEa-z]+)$/,
+	"src/13/input.txt",
+	/^([\[\]0-9,]+)$/,
 	match => {
-		const str = match[1];
-		for (let col = 0; col < str.length; col++) {
-			const chr = str[col];
-			const height =
-				chr == "S" ? 0 : chr == "E" ? alphabet.indexOf("z") : alphabet.indexOf(chr);
-
-			const node = {
-				column: col,
-				row: row,
-				height: height,
-				distance: 1,
-				explored: false,
-				sourceNode: null,
-				totalDistance: Number.MAX_SAFE_INTEGER,
-			};
-
-			if (chr == "E") {
-				endNode = node;
-			}
-
-			grid.set(col, row, node);
-		}
-		row++;
-
-		return null;
+		return match[1];
 	},
-	_ => {
-		const possibleStartNodes = grid.filter(n => n.height == 0);
-		let result: Node[] = null;
-		for (let i = 0; i < possibleStartNodes.length; i++) {
-			const startNode = possibleStartNodes[i];
-			try {
-				const candidate = dijkstras.findShortestPath(
-					startNode,
-					endNode,
-					(n, currentNode) =>
-						(n.column == currentNode.column || n.row == currentNode.row) &&
-						n.height - currentNode.height <= 1
-				);
-				if (result == null || candidate.length < result.length) {
-          console.log(`Found candidate at index ${i}`, candidate.length);
-					result = candidate;
-				}
-			} catch (e) {
-				// console.log(`Candidate at index ${i} failed`, e);
-			}
-		}
+	result => {
+		const dividerPacket1 = "[[2]]";
+		const dividerPacket2 = "[[6]]";
 
-		grid.print(n => {
-			const number = n.height > 9 ? `${n.height}` : `${n.height} `;
-			return result.includes(n) ? `[${number}]` : ` ${number} `;
+		result.push(dividerPacket1);
+		result.push(dividerPacket2);
+
+		result.sort((left, right) => {
+			if (compareNumbers(left, right)) {
+				return -1;
+			} else {
+				return 1;
+			}
 		});
 
-		// console.log(result);
-		answer = result.length - 1;
-		console.log(`Answer: ${answer}`);
+		answer =
+			(result.indexOf(dividerPacket1) + 1) * (result.indexOf(dividerPacket2) + 1);
+		console.log(answer);
 	}
 );
+
+function compareNumbers(left: string, right: string): boolean {
+	const leftReader = new StringReader(left);
+	const rightReader = new StringReader(right);
+
+	while (true) {
+		if (rightReader.isEOL()) {
+			return false;
+		} else if (leftReader.isEOL()) {
+			return true;
+		}
+
+		let leftChar = leftReader.read(1);
+		let rightChar = rightReader.read(1);
+
+		while (leftChar == "[" && rightChar == "[") {
+			leftChar = leftReader.read(1);
+			rightChar = rightReader.read(1);
+		}
+
+		if (leftChar == "[" && rightChar.match(/\d/)) {
+			makeArray(rightReader);
+		} else if (rightChar == "[" && leftChar.match(/\d/)) {
+			makeArray(leftReader);
+		} else if (leftChar.match(/\d/) && rightChar.match(/\d/)) {
+			leftReader.position--;
+			rightReader.position--;
+			const left = parseInt(leftReader.readUntil(c => !c.match(/\d/)));
+			const right = parseInt(rightReader.readUntil(c => !c.match(/\d/)));
+			if (left != right) {
+				return left < right;
+			}
+		} else if (rightChar == "]" && leftChar != "]") {
+			return false;
+		} else if (leftChar == "]" && rightChar != "]") {
+			return true;
+		}
+	}
+}
+
+function makeArray(reader: StringReader) {
+	const originalPosition = reader.position;
+	reader.position--;
+	reader.write("[");
+	reader.readUntil(c => "],".includes(c));
+	reader.write("]");
+	reader.position = originalPosition;
+}
