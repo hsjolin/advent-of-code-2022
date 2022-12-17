@@ -47,7 +47,7 @@ export class Grid<T extends GridNode> {
 	}
 
 	set(column: number, row: number, value: T) {
-		while (row >= this.rows) {
+		while (row >= this.rows) { 
 			const rowArray = [];
 			for (let colIndex = 0; colIndex < this.columns; colIndex++) {
 				rowArray.push({column: colIndex, row: this.rows});

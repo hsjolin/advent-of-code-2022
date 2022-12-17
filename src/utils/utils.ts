@@ -5,7 +5,7 @@ export class Utils {
 	static lineReader = function <T>(
 		file: string,
 		regex: RegExp,
-		lineCallback: (line: RegExpMatchArray) => T,
+		lineCallback: (line: RegExpMatchArray) => T, 
 		completeCallback: (values: T[]) => void
 	) {
 		const fileStream = fs.createReadStream(file);

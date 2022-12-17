@@ -77,7 +77,7 @@ module.exports = class Utils {
 		}
 
 		if (a == b) {
-			return arr;
+			return arr; 
 		}
 
 		arr = arr || [];
