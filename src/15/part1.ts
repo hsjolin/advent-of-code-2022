@@ -35,19 +35,21 @@ Utils.lineReader<Point>(
 			sensor.closestBeacon
 		);
 
-		const coveredPoints: Point[] = getCoverage(sensor);
-		coveredPoints.forEach(point => {
-			let existingPoint = map.getItemAt(point.column, point.row);
-			if (existingPoint == null) {
-				existingPoint = point;
-			} else {
-				existingPoint.isCovered;
-			}
-		});
+		if (sensor.column == 8 && sensor.row == 7) {
+			const coveredPoints: Point[] = getCoverage(sensor);
+			coveredPoints.forEach(point => {
+				let existingPoint = map.getItemAt(point.column, point.row);
+				if (existingPoint == null) {
+					existingPoint = point;
+				} else {
+					existingPoint.isCovered;
+				}
+			});
+		}
 		return sensor;
 	},
 	result => {
-		map.print(s => (s.name ?? s.isCovered ? "#" : "."));
+		map.print(s => (s.name ? s.name : s.isCovered ? "#" : "."));
 		console.log(answer);
 	}
 );
