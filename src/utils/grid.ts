@@ -5,10 +5,10 @@ export interface GridNode {
 
 export class Grid<T extends GridNode> {
 	private items: Map<string, T> = new Map<string, T>();
-	private rowMax = 0;
-	private rowMin = 0;
-	private columnMax = 0;
-	private columnMin = 0;
+	private rowMax = Number.MIN_SAFE_INTEGER;
+	private rowMin = Number.MAX_SAFE_INTEGER;
+	private columnMax = Number.MIN_SAFE_INTEGER;
+	private columnMin = Number.MAX_SAFE_INTEGER;
 
 	rows: number = 0;
 	columns: number = 0;
@@ -18,38 +18,56 @@ export class Grid<T extends GridNode> {
 	}
 
 	getColumnAt(column: number): T[] {
-		return this.filter(t => t.column == column)
-			.sort((a, b) => a.row - b.row);
+		return this.filter(t => t.column == column).sort((a, b) => a.row - b.row);
 	}
 
 	getRowAt(row: number): T[] {
-		return this.filter(t => t.row == row)
-			.sort((a, b) => a.column - b.column);
+		return this.filter(t => t.row == row).sort((a, b) => a.column - b.column);
 	}
 
 	getItemAt(column: number, row: number): T {
-		return this.items[this.key(column, row)];
+		const item = this.items[this.key(column, row)];
+		if (item != null) {
+			return item;
+		}
+
+		if (
+			column <= this.columnMax &&
+			column >= this.columnMin &&
+			row <= this.rowMax &&
+			row >= this.rowMin
+		) {
+			const newItem = {
+				column,
+				row,
+			} as T;
+
+			this.set(column, row, newItem);
+			return newItem;
+		}
+
+		return null;
 	}
 
 	set(column: number, row: number, value: T) {
 		this.items[this.key(column, row)] = value;
 
 		this.rowMax = row > this.rowMax ? row : this.rowMax;
-		this.rowMin = row < this.rowMin ? row: this.rowMin;
+		this.rowMin = row < this.rowMin ? row : this.rowMin;
 		this.rows = this.rowMax - this.rowMin + 1;
 
 		this.columnMax = column > this.columnMax ? column : this.columnMax;
 		this.columnMin = column < this.columnMin ? column : this.columnMin;
 		this.columns = this.columnMax - this.columnMin + 1;
 
-		for (let row = this.rowMin; row < this.rowMax + 1; row++) {
-			for (let column = this.columnMin; column < this.columnMax + 1; column++) {
-				let item = this.getItemAt(column, row);
-				if (item == null) {
-					this.items[this.key(column, row)] = { column: column, row: row } as T;
-				}
-			}
-		}
+		// for (let row = this.rowMin; row < this.rowMax + 1; row++) {
+		// 	for (let column = this.columnMin; column < this.columnMax + 1; column++) {
+		// 		let item = this.getItemAt(column, row);
+		// 		if (item == null) {
+		// 			this.items[this.key(column, row)] = { column: column, row: row } as T;
+		// 		}
+		// 	}
+		// }
 	}
 
 	find(func: (arg: T) => boolean): T {
@@ -93,7 +111,7 @@ export class Grid<T extends GridNode> {
 	print(func: (arg: T) => string) {
 		for (let r = this.rowMin; r < this.rowMax + 1; r++) {
 			const row = this.getRowAt(r);
-			console.log(row.map(i => func(i)).join(""));
+			console.log(`${r}\t`, row.map(i => func(i)).join(""));
 		}
 	}
 }

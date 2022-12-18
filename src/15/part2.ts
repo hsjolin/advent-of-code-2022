@@ -1,197 +1,107 @@
 import { Grid, GridNode } from "../utils/grid";
 import { Utils } from "../utils/utils";
-
-type Symbol = "." | "#" | "o" | "+";
-
-interface Point extends GridNode {
-	symbol: Symbol;
-}
-
-const sandSource: Point = {
-	column: 500,
-	row: 0,
-	symbol: "+",
-};
-
-let rockBottom = 0;
-
-const grid = new Grid<Point>();
+import { Interval } from "../utils/interval";
 
 let answer = 0;
-let gridColumnsMax = 0;
-let gridRowsMax = 0;
-let gridColumnsMin = 0;
-let gridRowsMin = 0;
+let line = 0;
+const map = new Grid<Point>();
+let intervals: Interval[] = [];
+let beaconsOnLine: Point[] = [];
 
-Utils.lineReader<Point[]>(
-	"src/14/input.txt",
-	/^(.*)$/,
+interface Point extends GridNode {
+	closestBeacon: Point;
+	name: string;
+}
+
+Utils.lineReader<Point>(
+	"src/15/input.txt",
+	/Sensor at x=([-\d]+), y=([-\d]+): closest beacon is at x=([-\d]+), y=([-\d]+)/,
 	match => {
-		const str = match[1];
-		const points = str.split(" -> ").map(s => {
-			const pair = s.split(",").map(s => parseInt(s));
-			return {
-				column: pair[0],
-				row: pair[1],
-				symbol: ".",
-			} as Point;
-		});
+		const sensor: Point = {
+			column: parseInt(match[1]),
+			row: parseInt(match[2]),
+			name: "S",
+			closestBeacon: {
+				column: parseInt(match[3]),
+				row: parseInt(match[4]),
+				name: "B",
+				closestBeacon: null,
+			},
+		};
 
-		return points;
+		map.set(sensor.column, sensor.row, sensor);
+		map.set(
+			sensor.closestBeacon.column,
+			sensor.closestBeacon.row,
+			sensor.closestBeacon
+		);
+
+
+		return sensor;
 	},
 	result => {
-		initGrid(result);
-		let continueSimulation = true;
-		while (continueSimulation) {
-			const sand: Point = {
-				column: sandSource.column,
-				row: sandSource.row - 1,
-				symbol: "o",
-			};
-
-			while (true) {
-				sand.row++;
-				const reachedRockBottom = sand.row + 1 == rockBottom;
-				let pointBelow = grid.getItemAt(sand.column, sand.row + 1) ?? {
-					column: sand.column,
-					row: sand.row + 1,
-					symbol: reachedRockBottom ? "#" : ".",
-				};
-				pointBelow.symbol = pointBelow.symbol
-					? pointBelow.symbol
-					: reachedRockBottom
-					? "#"
-					: ".";
-				grid.set(pointBelow.column, pointBelow.row, pointBelow);
-
-				if ((pointBelow.symbol ?? ".") == ".") {
-					continue;
-				}
-
-				let pointToTheLeft = grid.getItemAt(
-					pointBelow.column - 1,
-					pointBelow.row
-				) ?? {
-					column: pointBelow.column - 1,
-					row: pointBelow.row,
-					symbol: reachedRockBottom ? "#" : ".",
-				};
-
-				pointToTheLeft.symbol = pointToTheLeft.symbol
-					? pointToTheLeft.symbol
-					: reachedRockBottom
-					? "#"
-					: ".";
-
-				grid.set(pointToTheLeft.column, pointToTheLeft.row, pointToTheLeft);
-
-				let pointToTheRight = grid.getItemAt(
-					pointBelow.column + 1,
-					pointBelow.row
-				) ?? {
-					column: pointBelow.column + 1,
-					row: pointBelow.row,
-					symbol: reachedRockBottom ? "#" : ".",
-				};
-				pointToTheRight.symbol = pointToTheRight.symbol
-					? pointToTheRight.symbol
-					: reachedRockBottom
-					? "#"
-					: ".";
-				grid.set(pointToTheRight.column, pointToTheRight.row, pointToTheRight);
-
-				if (reachedRockBottom) {
-					grid.set(sand.column, sand.row, sand);
-					break;
-				}
-
-				if (pointToTheLeft.symbol == ".") {
-					sand.column--;
-					continue;
-				}
-
-				if (pointToTheRight.symbol == ".") {
-					sand.column++;
-					continue;
-				}
-
-				// At rest
-				grid.set(sand.column, sand.row, sand);
-				if (sand.row == sandSource.row) {
-					continueSimulation = false;
-				}
-
-				break;
+		for (let i = 0; i < 4000000; i++, line++) {
+			if (i % 100000 == 0) {
+				console.log(`${i} rows processed.`);
 			}
+			for (let p = 0; p < result.length; p++) {
+				calculateAnswer(result[p]);
+			}
+
+			if (intervals.length > 1) {
+				printFoundGap();
+			}
+
+			intervals = [];
+			beaconsOnLine = [];
 		}
 
-		grid.print(p => {
-			return p.column >= gridColumnsMin - 200 ? p.symbol ?? "." : "";
-		});
-
-		answer = grid.filter(p => p.symbol == "o").length;
 		console.log(answer);
 	}
 );
 
-function initGrid(result: Point[][]) {
-	const lines: Point[] = [];
+function calculateAnswer(sensor: Point) {
+	const manhattanReachDistance =
+		Math.abs(sensor.column - sensor.closestBeacon.column) +
+		Math.abs(sensor.row - sensor.closestBeacon.row);
 
-	for (let i = 0; i < result.length; i++) {
-		const points = result[i];
-		for (let j = 1; j < points.length; j++) {
-			const point1 = points[j - 1];
-			const point2 = points[j];
-			if (point1.column != point2.column) {
-				// Horizontal line
-				const startPoint = point1.column > point2.column ? point2 : point1;
-				const endPoint = startPoint == point1 ? point2 : point1;
-				const columnArray = Utils.interval(startPoint.column, endPoint.column + 1);
+	const distanceToLine = Math.abs(sensor.row - line);
 
-				for (let col = 0; col < columnArray.length; col++) {
-					lines.push({
-						column: columnArray[col],
-						row: startPoint.row,
-						symbol: "#",
-					});
-				}
-			} else if (point1.row != point2.row) {
-				// Vertical line
-				const startPoint = point1.row > point2.row ? point2 : point1;
-				const endPoint = startPoint == point1 ? point2 : point1;
-				const rowArray = Utils.interval(startPoint.row, endPoint.row + 1);
-
-				for (let row = 0; row < rowArray.length; row++) {
-					lines.push({
-						row: rowArray[row],
-						column: startPoint.column,
-						symbol: "#",
-					});
-				}
-			}
-		}
+	if (distanceToLine > manhattanReachDistance) {
+		return;
 	}
 
-	gridColumnsMax = Math.max(...lines.map(p => p.column));
-	gridRowsMax = Math.max(...lines.map(p => p.row));
-	gridColumnsMin = Math.min(...lines.map(p => p.column));
-	gridRowsMin = Math.min(...lines.map(p => p.row));
-	rockBottom = gridRowsMax + 2;
+	const columnCount = manhattanReachDistance * 2 + 1 - distanceToLine * 2;
 
-	for (let col = 0; col < gridColumnsMax + 1; col++) {
-		for (let row = 0; row < rockBottom; row++) {
-			grid.set(col, row, {
-				column: col,
-				row: row,
-				symbol: ".",
-			});
-		}
+	const interval = new Interval(
+		sensor.column - Math.floor(columnCount / 2),
+		sensor.column + Math.floor(columnCount / 2)
+	);
+
+	if (
+		sensor.closestBeacon.row == line &&
+		!beaconsOnLine.find(b => b.column == sensor.closestBeacon.column)
+	) {
+		beaconsOnLine.push(sensor.closestBeacon);
 	}
 
-	for (let i = 0; i < lines.length; i++) {
-		const linePoint = lines[i];
-		grid.set(linePoint.column, linePoint.row, linePoint);
+	const existingIntervals = intervals.filter(i => i.intersects(interval));
+	for (let i = 0; i < existingIntervals.length; i++) {
+		const existingInterval = existingIntervals[i];
+		interval.join(existingInterval);
+		intervals.splice(intervals.indexOf(existingInterval), 1);
 	}
 
-	grid.set(sandSource.column, sandSource.row, sandSource);
+	intervals.push(interval);
 }
+
+function printFoundGap() {
+	console.log(`Found a gap in intervals at row ${line}`);
+	const column = Math.max(...intervals.map(i => i.start)) - 1;
+	const row = line;
+	answer = column * 4000000 + row;
+	console.log(intervals, "Column", column, "Row", row);
+	console.log("Beacons", beaconsOnLine.length);
+	console.log("Distress frequency", answer);
+}
+
