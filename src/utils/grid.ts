@@ -84,7 +84,7 @@ export class Grid<T extends GridNode> {
 	filter(func: (arg: T) => boolean): T[] {
 		const result: T[] = [];
 		for (let row = this.rowMin; row < this.rowMax + 1; row++) {
-			for (let column = this.columnMin; column < this.columnMax; column++) {
+			for (let column = this.columnMin; column < this.columnMax + 1; column++) {
 				const item = this.getItemAt(column, row);
 				if (func(item)) {
 					result.push(item);

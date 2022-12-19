@@ -9,11 +9,16 @@ export interface DijkstrasNode extends GridNode {
 }
 
 export class Dijkstras<T extends DijkstrasNode> {
-	estimatedNodes: T[] = [];
-	grid: Grid<T>;
+	private estimatedNodes: T[] = [];
+	private grid: Grid<T>;
+	private adjacentSelector: (currentNode: T) => T[];
 
 	constructor(grid: Grid<T>) {
 		this.grid = grid;
+		this.adjacentSelector = (currentNode) => this.grid.getAdjacentItems(
+			currentNode.column,
+			currentNode.row
+		);
 	}
 
 	reset() {
@@ -25,6 +30,10 @@ export class Dijkstras<T extends DijkstrasNode> {
 			node.totalDistance = Number.MAX_SAFE_INTEGER;
 			node.sourceNode = null;
 		}
+	}
+
+	setAdjacentSelector(selector: (currentNode: T) => T[]) {
+		this.adjacentSelector = selector;
 	}
 
 	findShortestPath = (
@@ -41,8 +50,7 @@ export class Dijkstras<T extends DijkstrasNode> {
 		let currentNode = startNode;
 
 		while (currentNode != destinationNode) {
-			const adjacentNodes = this.grid
-				.getAdjacentItems(currentNode.column, currentNode.row)
+			const adjacentNodes = this.adjacentSelector(currentNode)
 				.filter(n => adjacentFilter(n, currentNode) && !n.explored);
 
 			adjacentNodes.forEach(adjecent => {
