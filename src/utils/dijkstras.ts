@@ -23,7 +23,7 @@ export class Dijkstras<T extends DijkstrasNode> {
 
 	reset() {
 		this.estimatedNodes = [];
-		const nodes = this.grid.filter(n => n.explored);
+		const nodes = this.grid.filter(_ => true);
 		for (let i = 0; i < nodes.length; i++) {
 			const node = nodes[i];
 			node.explored = false;
